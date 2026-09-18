@@ -1,0 +1,30 @@
+# dsh-glm-mode bundle patch：把 GLM 模式插件插入 profile roster。
+# 安装：dev_install_package / dsh plugin --profile web add <目录或 tgz>
+# 之后在会话预设选择器里选「GLM 模式」（推荐搭配模型 zhipuai/glm-5.3-flash）。
+#
+# 配置（可选）：
+#   compactEnabled: true      自动压缩开关；false 仍保留手动 /compact service
+#   glmThresholdRatio: 0.75   GLM 会话上下文达 75% 即自动压缩（Codex 式）
+#   glmRetainRatio: 0.22      压缩后保留最近 22% 的上下文
+#   otherThresholdRatio: 0.98 非 GLM 模型会话的兜底阈值（≈仅溢出级兜底）
+#   glmPresetEnabled: true    随插件安装「GLM 模式」Agent 预设（卸载=自动删除）#
+# v0.3.0 思考死循环守卫（GLM reasoning 流重复检测 + 提前截断）：
+#   loopGuardEnabled: true           默认开；只对 zhipuai glm-* 流生效
+#   loopGuardRepeatThreshold: 8      同一句子连续重复 N 次即判定死循环
+#   loopGuardMinSentenceChars: 48    参与比对的句子最小长度
+#   loopGuardMinReasoningChars: 2000 累计 reasoning 字符达到后才武装（防误伤）
+#   触发后合成 finish{max-tokens}，复用「输出 token 上限」既有 UI 链路
+#   触发事件追加写入 ~/.dsh/dsh-glm/guard-events.jsonl（对账用，不碰会话）
+#
+# v0.4.0 工具空转守卫（连续占位 run_code 检测 + 纠偏注入）：
+#   spinGuardEnabled: true         默认开；仅 zhipuai glm-* 路由 + agent 会话生效
+#   spinGuardStreakThreshold: 5    连续占位（无 tools.* 实质引用的短 run_code）达 N 次即干预
+#   spinGuardMaxCodeChars: 200     占位判定的 code 长度上限（≥ 视为有实质内容）
+#   spinGuardWindowMs: 900000      距最近占位超过该毫秒数视为断流（streak 清零）
+#   达阈值后经 agent/pre-step 官方决策通道注入一次纠偏 user 消息（尾部追加，
+#   不动请求前缀缓存），随后清零；事件 kind=tool-spin 同写 guard-events.jsonl
+- insert:
+    - id: dsh-glm-mode
+      name: 'dsh-glm-mode'
+      config:
+        compactEnabled: true

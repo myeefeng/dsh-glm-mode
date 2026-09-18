@@ -1,0 +1,72 @@
+{
+  "name": "dsh-glm-mode",
+  "version": "0.4.0",
+  "description": "GLM Mode: a fully tuned coding agent preset for zhipuai/glm-5.3-flash in DeepSeek Harness — PTC/Code Mode tool presentation, GLM-specific auto-compaction (75%/22%), native multimodal, and a guard family (reasoning loop guard + tool spin guard). The preset installs/uninstalls with the plugin.",
+  "private": false,
+  "type": "module",
+  "main": "./lib/index.js",
+  "types": "./lib/types/index.d.ts",
+  "files": [
+    "lib",
+    "src",
+    "presets",
+    "cordis.patch.yml",
+    "README.md",
+    "assets"
+  ],
+  "license": "MIT",
+  "keywords": [
+    "deepseek",
+    "harness",
+    "dsh",
+    "dsh-plugin",
+    "glm",
+    "glm-mode",
+    "zhipuai",
+    "agent-preset",
+    "compaction",
+    "loop-guard",
+    "guard"
+  ],
+  "scripts": {
+    "build": "bash scripts/build.sh",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "selftest": "node scripts/selftest-loop-guard.mjs",
+    "prepublishOnly": "npm run typecheck && node scripts/selftest-loop-guard.mjs"
+  },
+  "peerDependencies": {
+    "@deepseek-ai/dsh-compaction-basic": ">=0.0.1-rc <2",
+    "@deepseek-ai/dsh-compaction-tool-result-pruner": ">=0.0.1-rc <2",
+    "@deepseek-ai/schemastery": "^3.18.0"
+  },
+  "devDependencies": {
+    "@deepseek-ai/dsh-compaction-basic": "0.1.0-rc.8",
+    "@deepseek-ai/dsh-compaction-tool-result-pruner": "0.1.0-rc.8",
+    "@deepseek-ai/schemastery": "^3.18.1",
+    "@types/node": "^22.0.0",
+    "typescript": "~5.7.2"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/hoyyang/dsh-glm-mode.git"
+  },
+  "homepage": "https://github.com/hoyyang/dsh-glm-mode#readme",
+  "bugs": "https://github.com/hoyyang/dsh-glm-mode/issues",
+  "publishConfig": {
+    "access": "public"
+  },
+  "exports": {
+    ".": {
+      "types": "./lib/types/index.d.ts",
+      "default": "./lib/index.js"
+    },
+    "./cordis.patch.yml": "./cordis.patch.yml",
+    "./package.json": "./package.json"
+  },
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    }
+  },
+  "author": "hoyyang"
+}

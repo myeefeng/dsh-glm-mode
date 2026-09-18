@@ -1,0 +1,3 @@
+name: GLM 模式
+description: 为 zhipuai/glm-5.3-flash 调优的完整编码 Agent：全量工具目录以 PTC/Code Mode 呈现（程序化工具调用，一个 TypeScript 程序组合多步操作），预设内自带 GLM 专属自动压缩（阈值 75% / 保留 22%，压缩后无缝衔接续跑），声明原生多模态。z.ai 思考格式与 tool_stream 由 llm-pi-ai 路由层配置生效。
+order: 3
