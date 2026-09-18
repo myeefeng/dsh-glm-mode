@@ -15,8 +15,10 @@
 ## 安装
 
 ```bash
-dsh plugin add hoyyang/dsh-glm-mode
+dsh plugin add dsh-glm-mode
 ```
+
+（npm 包名独享；也可用 GitHub 源：`dsh plugin add hoyyang/dsh-glm-mode`）
 
 零配置可用（全部开关默认开启）。新会话在预设选择器里选「**GLM 模式**」，模型选 `zhipuai/glm-5.3-flash` 即可。
 
@@ -30,7 +32,7 @@ dsh plugin add hoyyang/dsh-glm-mode
 
 ## 30 秒上手
 
-1. `dsh plugin add hoyyang/dsh-glm-mode`
+1. `dsh plugin add dsh-glm-mode`
 2. 重启 DSH（或热重载）
 3. 新会话 → 预设选「GLM 模式」
 4. 模型选 `zhipuai/glm-5.3-flash`

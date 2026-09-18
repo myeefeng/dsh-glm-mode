@@ -15,8 +15,10 @@ The "GLM Mode" agent preset for DeepSeek Harness, tuned end-to-end for zhipuai/g
 ## Install
 
 ```bash
-dsh plugin add hoyyang/dsh-glm-mode
+dsh plugin add dsh-glm-mode
 ```
+
+(The npm package name is unique; GitHub source also works: `dsh plugin add hoyyang/dsh-glm-mode`.)
 
 Zero config required (every switch defaults to on). In a new session pick the "**GLM Mode**" agent preset and the `zhipuai/glm-5.3-flash` model.
 
@@ -30,7 +32,7 @@ Zero config required (every switch defaults to on). In a new session pick the "*
 
 ## 30-second start
 
-1. `dsh plugin add hoyyang/dsh-glm-mode`
+1. `dsh plugin add dsh-glm-mode`
 2. Restart DSH (or hot-reload)
 3. New session → agent preset "**GLM Mode**"
 4. Model → `zhipuai/glm-5.3-flash`
