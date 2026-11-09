@@ -2,6 +2,16 @@
 
 本项目的所有重要变更都记录在这里。格式参考 Keep a Changelog。
 
+## [0.4.1] - 2026-11-09
+
+### 修复
+- **「GLM 模式」预设改由 bundle patch 直接声明（preset-glm 行）**：当前 harness 版本只读取 bundle 声明式预设，不再读取旧版 `~/.dsh/.agent-presets/<id>` 目录，旧安装路径导致预设不出现在选择器。插件的 cpSync 旧目录逻辑仅为兼容旧版 harness 保留；`presets/glm/agent.cordis.yml` 与 `cordis.patch.yml` 内联声明为同一清单的两处拷贝，改动需两处同步。
+- 预设清单对齐 dsh 0.2.2-rc.1（实测激活通过）：
+  - `@deepseek-ai/dsh-tool-subagent-control/list-agents` 子导出不存在 → 移除该行；
+  - `tool-subagent` 的 `backgroundMode` 配置键在 0.2.x 不存在 → 移除，spawn 行补 `modelSelection`/`modelDiscovery`（与官方 ptc 预设一致）；
+  - `@deepseek-ai/dsh-workflow-worker-thread` 包不存在 → 替换为 `@deepseek-ai/dsh-workflow-ptc`（provider: spawn，同 isolate workflowEngine 组）；
+  - `@deepseek-ai/dsh-agent-tool-presentation`（mode: ptc）已弃用 → 替换为 `@deepseek-ai/dsh-tool-executor-ptc`。
+
 ## [0.4.0] - 2026-09-18
 
 ### 新增

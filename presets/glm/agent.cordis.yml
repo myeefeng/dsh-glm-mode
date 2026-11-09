@@ -1,5 +1,22 @@
 # The `glm` agent preset (dsh-glm plugin): a GLM-tuned coding agent.
 #
+# v0.4.1 compat fixes (dsh 0.2.2-rc.1 live verification, 2026-11-09):
+#   - `@deepseek-ai/dsh-tool-subagent-control/list-agents` subpath does not
+#     exist → row removed (the control tool itself remains).
+#   - `backgroundMode` is not a dsh-tool-subagent config key in 0.2.x →
+#     removed; spawn row gains modelSelection/modelDiscovery like the shipped
+#     `ptc` preset.
+#   - `@deepseek-ai/dsh-workflow-worker-thread` does not exist → replaced by
+#     `@deepseek-ai/dsh-workflow-ptc` (provider: spawn).
+#   - `@deepseek-ai/dsh-agent-tool-presentation` is deprecated → replaced by
+#     `@deepseek-ai/dsh-tool-executor-ptc`.
+#
+# IMPORTANT: on current harness versions presets are bundle declarations;
+# cordis.patch.yml carries an inline copy of this list for the
+# `preset-glm` declaration. Keep the two files in sync when editing rows.
+# This directory remains the source for the legacy `.agent-presets/<id>`
+# install path (older harness releases read it; the plugin keeps copying it).
+#
 # Design notes:
 #   - Based on the built-in `code` (PTC) preset: the FULL standard tool
 #     catalog presented through Code Mode (programmatic tool calling) — no
@@ -155,22 +172,19 @@
     - id: tool-subagent-control
       name: '@deepseek-ai/dsh-tool-subagent-control'
 
-    - id: tool-subagent-list-agents
-      name: '@deepseek-ai/dsh-tool-subagent-control/list-agents'
-
     - id: tool-subagent
       name: '@deepseek-ai/dsh-tool-subagent'
       config:
         provider: spawn
         toolName: subagent
-        backgroundMode: continuable
+        modelSelection: true
+        modelDiscovery: true
 
     - id: tool-subagent-fork
       name: '@deepseek-ai/dsh-tool-subagent'
       config:
         provider: fork
         toolName: subagent_fork
-        backgroundMode: continuable
 
     - id: tool-subagent-codex
       name: '@deepseek-ai/dsh-tool-subagent'
@@ -190,8 +204,11 @@
         backgroundMode: one-shot
         maxDepth: provider-managed
 
-    - id: workflow-worker-thread
-      name: '@deepseek-ai/dsh-workflow-worker-thread'
+    # @deepseek-ai/dsh-workflow-worker-thread does not exist in dsh 0.2.x —
+    # the shipped `ptc` preset mounts `dsh-workflow-ptc` (provider: spawn) in
+    # this group instead. Same isolate realm (workflowEngine) applies.
+    - id: workflow-ptc
+      name: '@deepseek-ai/dsh-workflow-ptc'
       config:
         provider: spawn
 
@@ -222,14 +239,11 @@
 
 # ── presentation ────────────────────────────────────────────────────────────
 
-# PTC (Code Mode) for this agent alone, mirroring the shipped `code` preset:
+# PTC (Code Mode) for this agent alone, mirroring the shipped `ptc` preset:
 # the full standard catalog is presented through the Code Mode SDK so the
-# model composes multi-step operations in one TypeScript program. The row
-# waits for the host's `codeRuntime` rather than assuming it: a deployment
-# that composes no TypeScript runtime fails this preset at mount, naming this
-# id, instead of at the first request. (This deployment's web composition
-# ships `code-runtime` — verified via `dsh --profile web --dump-config`.)
-- id: tool-presentation
-  name: '@deepseek-ai/dsh-agent-tool-presentation'
-  config:
-    mode: ptc
+# model composes multi-step operations in one TypeScript program.
+# `@deepseek-ai/dsh-agent-tool-presentation` (mode: ptc) is deprecated since
+# dsh 0.2.2-rc.1 — mount `dsh-tool-executor-ptc` directly, like the shipped
+# preset does.
+- id: tool-executor-ptc
+  name: '@deepseek-ai/dsh-tool-executor-ptc'

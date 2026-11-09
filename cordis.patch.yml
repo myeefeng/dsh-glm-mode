@@ -2,12 +2,18 @@
 # 安装：dev_install_package / dsh plugin --profile web add <目录或 tgz>
 # 之后在会话预设选择器里选「GLM 模式」（推荐搭配模型 zhipuai/glm-5.3-flash）。
 #
+# v0.4.1 起预设由本 patch 直接声明（preset-glm 行）：当前 harness 版本只读取
+# bundle 声明式预设，不再读取旧版 ~/.dsh/.agent-presets/<id> 目录。插件内的
+# cpSync 旧目录逻辑仅为兼容旧版 harness 保留。⚠ presets/glm/agent.cordis.yml
+# 与本文件 plugins 列表是同一份清单的两处拷贝，改动行时必须两处同步。
+#
 # 配置（可选）：
 #   compactEnabled: true      自动压缩开关；false 仍保留手动 /compact service
 #   glmThresholdRatio: 0.75   GLM 会话上下文达 75% 即自动压缩（Codex 式）
 #   glmRetainRatio: 0.22      压缩后保留最近 22% 的上下文
 #   otherThresholdRatio: 0.98 非 GLM 模型会话的兜底阈值（≈仅溢出级兜底）
-#   glmPresetEnabled: true    随插件安装「GLM 模式」Agent 预设（卸载=自动删除）#
+#   glmPresetEnabled: true    随插件安装「GLM 模式」Agent 预设（卸载=自动删除）
+#
 # v0.3.0 思考死循环守卫（GLM reasoning 流重复检测 + 提前截断）：
 #   loopGuardEnabled: true           默认开；只对 zhipuai glm-* 流生效
 #   loopGuardRepeatThreshold: 8      同一句子连续重复 N 次即判定死循环
@@ -28,3 +34,165 @@
       name: 'dsh-glm-mode'
       config:
         compactEnabled: true
+
+    # 「GLM 模式」预设声明（dsh 0.2.2-rc.1 实测通过；行清单与
+    # presets/glm/agent.cordis.yml 保持同步）。
+    - id: preset-glm
+      name: '@deepseek-ai/dsh-agent-preset'
+      config:
+        id: glm
+        name: GLM 模式
+        description: 为 zhipuai/glm-5.3-flash 调优的完整编码 Agent：全量工具目录以 PTC/Code Mode 呈现（程序化工具调用，一个 TypeScript 程序组合多步操作），预设内自带 GLM 专属自动压缩（阈值 75% / 保留 22%，压缩后无缝衔接续跑），声明原生多模态。z.ai 思考格式与 tool_stream 由 llm-pi-ai 路由层配置生效。
+        order: 3
+        plugins:
+          - id: persona
+            name: '@deepseek-ai/dsh-persona'
+            config:
+              prefix: >-
+                You are a coding agent powered by the {{model}} model (GLM-5 series, natively multimodal: read images and screenshots the user attaches directly instead of claiming you cannot see them). Your working directory is {{cwd}}.
+                Keep execution lifecycles tight: use a background continuable subagent only when parallel work or a later follow-up is genuinely useful; for a one-shot delegation whose result is needed now and will not be reused, set run_in_background to false so the run is awaited and its live resources are disposed before continuing. Interrupt a running subagent once its remaining work is no longer needed. Collect completed background jobs, kill jobs that stopped mattering, and leave no relevant job running when the task ends. A ready subagent is storage-only resumable history, not live work, so do not delete or restart it merely to clean up resources.
+                When several tool calls are independent, issue them in the same turn as parallel calls: it cuts round trips and your per-turn thinking overhead. Keep tool call arguments compact — defer to file paths and identifiers rather than re-pasting large content.
+                When an automatic context compaction happens, the earlier conversation is replaced by a summary in place: treat that summary as your durable memory and continue the task from it without asking the user to repeat anything.
+
+          - id: agent-instructions
+            name: '@deepseek-ai/dsh-agent-instructions'
+            config:
+              maxBytes: 65536
+
+          - id: tool-bash
+            name: '@deepseek-ai/dsh-tool-bash'
+            disabled: !!js process.platform === 'win32'
+
+          - id: tool-pwsh
+            name: '@deepseek-ai/dsh-tool-pwsh'
+            disabled: !!js process.platform !== 'win32'
+
+          - id: tool-fs
+            name: '@deepseek-ai/dsh-tool-fs'
+
+          - id: tool-fs-search
+            name: '@deepseek-ai/dsh-tool-fs-search'
+            config:
+              sampleOverCapGlobResults: false
+
+          - id: tool-jobs
+            name: '@deepseek-ai/dsh-tool-jobs'
+
+          - id: skill-filesystem
+            name: '@deepseek-ai/dsh-skill-filesystem'
+
+          - id: tool-skill
+            name: '@deepseek-ai/dsh-tool-skill'
+
+          - id: tool-goal
+            name: '@deepseek-ai/dsh-tool-goal'
+
+          - id: planning
+            name: cordis:group
+            group: true
+            isolate:
+              planMode: true
+            config:
+              - id: plan-mode
+                name: '@deepseek-ai/dsh-plan-mode'
+                config:
+                  section: |
+                    You are in plan mode. Stay in plan mode until exit_plan_mode succeeds or the user switches the session mode. Imperative language to implement changes means plan the implementation, not execute it. A user's conversational agreement — including an answer confirming something you asked — approves nothing and does not end plan mode; fold the confirmed decision into the plan and submit it through exit_plan_mode.
+
+                    Explore first. Use non-mutating reads, searches, static analysis, and checks to ground the plan in the actual repository. Do not edit or write files, change configuration, run formatters or code generation that rewrites tracked files, commit, or otherwise carry out the plan. Prefer existing functions and patterns over new machinery.
+
+                    The tool catalog stays the same across modes for request-cache stability. These plan-mode rules override any later tool description or guidance that suggests using mutation tools; those tools remain listed to keep the tool catalog unchanged. Do not use todo_write to track this planning phase: it tracks implementation after an approved plan, while the plan itself belongs in exit_plan_mode.
+
+                    Resolve discoverable facts by inspection. Use ask_user_question only for user-owned choices or material ambiguity that inspection cannot answer. Do not ask the user where code lives or how current behavior works when you can find out.
+
+                    Make the plan decision-complete: state the goal and success criteria; group implementation changes by subsystem; identify public API, schema, and data-flow changes; cover edge cases, failure modes, tests, acceptance criteria, and explicit assumptions. Keep it concise enough to review but detailed enough that another engineer can implement it without making design decisions.
+
+                    When ready, call exit_plan_mode with the complete plan markdown, starting with a # title. Make exit_plan_mode the only and final tool call in that assistant response: it presents the plan for approval, and implementation begins only in a later step after approval. Do not paste the final plan as a plain reply or ask "should I proceed?" through prose or ask_user_question. If review rejects it, incorporate the feedback and present again. If the review channel is unavailable or aborted, stay in plan mode and ask the user to switch modes manually; do not proceed with implementation.
+
+          - id: compaction
+            name: cordis:group
+            group: true
+            isolate:
+              compaction: true
+              toolResultPruner: true
+            config:
+              - id: compaction-basic
+                name: '@deepseek-ai/dsh-compaction-basic'
+                config:
+                  thresholdRatio: 0.75
+                  retainRatio: 0.22
+                  maxTokens: 8192
+                  compactionRetries: 1
+                  maxOverflowRetries: 1
+
+              - id: command-compact
+                name: '@deepseek-ai/dsh-command-compact'
+
+              - id: tool-result-pruner
+                name: '@deepseek-ai/dsh-compaction-tool-result-pruner'
+                config:
+                  thresholdChars: 8192
+                  headChars: 4096
+                  tailChars: 1024
+
+          - id: delegation
+            name: cordis:group
+            group: true
+            isolate:
+              workflowEngine: true
+            config:
+              - id: tool-subagent-control
+                name: '@deepseek-ai/dsh-tool-subagent-control'
+
+              - id: tool-subagent
+                name: '@deepseek-ai/dsh-tool-subagent'
+                config:
+                  provider: spawn
+                  toolName: subagent
+                  modelSelection: true
+                  modelDiscovery: true
+
+              - id: tool-subagent-fork
+                name: '@deepseek-ai/dsh-tool-subagent'
+                config:
+                  provider: fork
+                  toolName: subagent_fork
+
+              - id: tool-subagent-codex
+                name: '@deepseek-ai/dsh-tool-subagent'
+                disabled: true
+
+              - id: tool-subagent-claude-code
+                name: '@deepseek-ai/dsh-tool-subagent'
+                disabled: true
+
+              - id: workflow-ptc
+                name: '@deepseek-ai/dsh-workflow-ptc'
+                config:
+                  provider: spawn
+
+              - id: tool-workflow
+                name: '@deepseek-ai/dsh-tool-workflow'
+
+              - id: tool-ralph
+                name: '@deepseek-ai/dsh-tool-ralph'
+                config:
+                  subagentProvider: spawn
+                  maxRounds: 64
+
+          - id: tool-ask-user
+            name: '@deepseek-ai/dsh-tool-ask-user'
+
+          - id: tool-todo
+            name: '@deepseek-ai/dsh-tool-todo'
+            config:
+              allowParallelInProgress: true
+
+          - id: tool-web
+            name: '@deepseek-ai/dsh-tool-web'
+            config:
+              fetch: false
+              searchTimeoutMs: 60000
+
+          - id: tool-executor-ptc
+            name: '@deepseek-ai/dsh-tool-executor-ptc'

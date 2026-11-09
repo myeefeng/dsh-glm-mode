@@ -1,6 +1,6 @@
 {
   "name": "dsh-glm-mode",
-  "version": "0.4.0",
+  "version": "0.4.1",
   "description": "GLM Mode: a fully tuned coding agent preset for zhipuai/glm-5.3-flash in DeepSeek Harness — PTC/Code Mode tool presentation, GLM-specific auto-compaction (75%/22%), native multimodal, and a guard family (reasoning loop guard + tool spin guard). The preset installs/uninstalls with the plugin.",
   "private": false,
   "type": "module",
